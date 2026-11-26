@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DJ-AI | Mezclador Autónomo</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #181b24;
+      --border: #2a2f3d;
+      --text: #e8ecf4;
+      --muted: #98a2b3;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 2rem 1rem; }
+    .container { max-width: 860px; margin: 0 auto; }
+    h1 { margin: 0 0 0.4rem; font-size: 1.9rem; }
+    .subtitle { color: var(--muted); margin-bottom: 1.8rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    label { display: block; font-weight: 600; margin-bottom: 0.45rem; font-size: 0.95rem; }
+    input[type="text"], select, textarea {
+      width: 100%; padding: 0.7rem 0.85rem; border-radius: 8px;
+      border: 1px solid var(--border); background: #10131a; color: var(--text);
+      font-size: 0.95rem; margin-bottom: 1rem;
+    }
+    .dropzone {
+      border: 2px dashed var(--border); border-radius: 10px; padding: 1.5rem;
+      text-align: center; cursor: pointer; margin-bottom: 1rem; transition: border-color 0.2s;
+    }
+    .dropzone:hover { border-color: var(--accent); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    .checkbox-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.2rem; font-size: 0.92rem; color: var(--muted); }
+    button {
+      width: 100%; padding: 0.9rem; border: none; border-radius: 10px;
+      background: var(--accent); color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background 0.2s;
+    }
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .progress-wrap { display: none; margin-top: 1rem; }
+    .bar-bg { width: 100%; height: 10px; background: #10131a; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width 0.25s; }
+    .status-text { margin-top: 0.55rem; font-size: 0.9rem; color: var(--muted); }
+    .result-card { display: none; }
+    audio { width: 100%; margin: 0.8rem 0 1rem; }
+    .download-btn {
+      display: inline-block; text-decoration: none; background: var(--success); color: #081c0f;
+      font-weight: 700; padding: 0.65rem 1.1rem; border-radius: 8px; margin-bottom: 1.2rem;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px; background: #242938; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DJ-AI Autonomous Mixer</h1>
+    <p class="subtitle">Selecciona tus canciones y deja que la IA analice BPM, tonalidad, clímax y genere una mezcla continua.</p>
+
+    <div class="card">
+      <form id="mixForm">
+        <label>1. Sube tus canciones (MP3, M4A, WAV, FLAC)</label>
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" multiple accept=".mp3,.m4a,.wav,.flac,.ogg,.aac" style="display:none" />
+          <span id="fileLabel">Haz clic o arrastra aquí hasta 40 canciones</span>
+        </div>
+
+        <label for="folderPath">O indica la ruta de una carpeta local en tu PC (Opcional)</label>
+        <input type="text" id="folderPath" placeholder="Ej: C:\Users\tu_usuario\Music\Fiesta" />
+
+        <div class="row">
+          <div>
+            <label for="styleSelect">Estilo de mezcla</label>
+            <select id="styleSelect">
+              <option value="balanced">Equilibrado (Recomendado)</option>
+              <option value="dance_extended">Fiesta Bailable (Canciones más largas)</option>
+              <option value="quick_hype">Ritmo Rápido (Clímax y coros)</option>
+            </select>
+          </div>
+          <div>
+            <label for="formatSelect">Formato de salida</label>
+            <select id="formatSelect">
+              <option value="mp3">MP3 (320 kbps)</option>
+              <option value="wav">WAV (Alta calidad sin pérdida)</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="contextInput">Contexto o vibra deseada (Opcional)</label>
+        <input type="text" id="contextInput" placeholder="Ej: Empieza con salsa o pop, sigue con reggaetón y cierra con electrónica fuerte" />
+
+        <label class="checkbox-row">
+          <input type="checkbox" id="stemsCheck" checked />
+          Usar separación de Stems (IA) en cambios bruscos de género o BPM (&gt;8%)
+        </label>
+
+        <button type="submit" id="submitBtn">Generar Mix DJ</button>
+
+        <div class="progress-wrap" id="progressWrap">
+          <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+          <div class="status-text" id="statusText">Preparando...</div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card result-card" id="resultCard">
+      <h2>Tu Mix está listo</h2>
+      <audio id="audioPlayer" controls></audio>
+      <a id="downloadLink" class="download-btn" href="#" download>Descargar Mezcla</a>
+
+      <h3>Tracklist y Transiciones Generadas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Canción</th>
+            <th>Género</th>
+            <th>BPM</th>
+            <th>Camelot</th>
+            <th>Ventana</th>
+            <th>Transición</th>
+          </tr>
+        </thead>
+        <tbody id="tracklistBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const fileLabel = document.getElementById("fileLabel");
+    const mixForm = document.getElementById("mixForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const progressWrap = document.getElementById("progressWrap");
+    const barFill = document.getElementById("barFill");
+    const statusText = document.getElementById("statusText");
+    const resultCard = document.getElementById("resultCard");
+    const audioPlayer = document.getElementById("audioPlayer");
+    const downloadLink = document.getElementById("downloadLink");
+    const tracklistBody = document.getElementById("tracklistBody");
+
+    let selectedFiles = [];
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.style.borderColor = "#6366f1"; });
+    dropzone.addEventListener("dragleave", () => { dropzone.style.borderColor = "#2a2f3d"; });
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.style.borderColor = "#2a2f3d";
+      selectedFiles = Array.from(e.dataTransfer.files);
+      fileLabel.textContent = `${selectedFiles.length} archivo(s) seleccionados`;
+    });
+    fileInput.addEventListener("change", () => {
+      selectedFiles = Array.from(fileInput.files);
+      fileLabel.textContent = `${selectedFiles.length} archivo(s) seleccionados`;
+    });
+
+    function fmtTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    mixForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      resultCard.style.display = "none";
+      progressWrap.style.display = "block";
+      barFill.style.width = "5%";
+      statusText.style.color = "#98a2b3";
+      statusText.textContent = "Subiendo y preparando pistas...";
+
+      const formData = new FormData();
+      selectedFiles.forEach((f) => formData.append("files", f));
+      formData.append("folder_path", document.getElementById("folderPath").value);
+      formData.append("user_context", document.getElementById("contextInput").value);
+      formData.append("style", document.getElementById("styleSelect").value);
+      formData.append("output_format", document.getElementById("formatSelect").value);
+      formData.append("use_stems", document.getElementById("stemsCheck").checked ? "true" : "false");
+
+      try {
+        const res = await fetch("/api/mix", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al iniciar mezcla");
+
+        const poll = setInterval(async () => {
+          const jr = await fetch(`/api/jobs/${data.job_id}`);
+          const job = await jr.json();
+          barFill.style.width = `${job.percent || 10}%`;
+          statusText.textContent = job.message || "Procesando...";
+
+          if (job.status === "completed") {
+            clearInterval(poll);
+            submitBtn.disabled = false;
+            const url = `/api/mixes/${encodeURIComponent(job.result.output_filename)}`;
+            audioPlayer.src = url;
+            downloadLink.href = url;
+            downloadLink.download = job.result.output_filename;
+
+            tracklistBody.innerHTML = "";
+            job.result.tracklist.forEach((t) => {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `
+                <td>${t.order}</td>
+                <td><strong>${t.title || "Sin título"}</strong><br><small style="color:#98a2b3">${t.artist || ""}</small></td>
+                <td><span class="badge">${t.genre}</span></td>
+                <td>${t.bpm}</td>
+                <td><span class="badge">${t.camelot_key}</span></td>
+                <td>${fmtTime(t.cue_in_sec)} – ${fmtTime(t.cue_out_sec)}</td>
+                <td>${t.transition_type ? `<span class="badge">${t.transition_type}</span>` : "Final"}</td>
+              `;
+              tracklistBody.appendChild(tr);
+            });
+            resultCard.style.display = "block";
+          } else if (job.status === "error") {
+            clearInterval(poll);
+            submitBtn.disabled = false;
+            statusText.style.color = "#ef4444";
+            statusText.textContent = `Error: ${job.message}`;
+          }
+        }, 800);
+      } catch (err) {
+        submitBtn.disabled = false;
+        statusText.style.color = "#ef4444";
+        statusText.textContent = `Error: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>

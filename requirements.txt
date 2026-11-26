@@ -1,0 +1,18 @@
+numpy
+scipy
+soundfile
+librosa
+pyloudnorm
+mutagen
+imageio-ffmpeg
+pedalboard
+fastapi
+uvicorn[standard]
+python-multipart
+requests
+pytest
+httpx2
+# Optional for selective stem separation on GPU/CPU:
+# torch
+# torchaudio
+# demucs
